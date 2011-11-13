@@ -16,15 +16,36 @@
     Knappmeier, and updated for PmWiki 2 by Patrick R. Michaud on
     2004-11-30.  Modified by Hagan Fox on 2006-01-24 and 2006-04-09.
     Modified by Andy Kaplan-Myrth on 2006-05-31 to work with Kind-ofBlog.
-	Modified by Tamara Temple on 2011-05 to remove dependency on KoB
+    Modified by Tamara Temple on 2011-05 to remove dependency on KoB
 	and work with any page (taking a half-step back to the original)
+
+    More modifications by Tamara Temple on 2011/11/13:
+	Nearly completely rewritten to allow the wiki owner to
+	configure how they want the incoming link to be
+	formatted. Bookmark format variables include:
+	$AddLinkUrl = corresponds to the url query param
+	$AddLinkTitle = corresponds to the title query param
+	$AddLinkSelection = corresponds to the selection query param
+	$AddLinkTags = corresponds to the tags param
+	$AddLinkTime = set to current time
+
+	No longer forcing the bookmark tag on submission, can be set
+	via the $AddLinkFmt variable (see $DefaultAddLinkFmt)
+
+	Also, the bookmarklet itself is completely rewritten to be
+	browser-independent as well as opening a new window rather
+	than changing the current tab/window's location.
 
     Install the script by copying the it to the cookbook/ directory
     and adding the following to the configuration file:
 
     ## Enable the AddLink Bookmarklet recipe.
     if ($action == 'edit' || $action == 'browse' || $action == 'addlink') {
-      include_once("$FarmD/cookbook/addlink-tags.php"); }
+      include_once("$FarmD/cookbook/addlink-tags2.php"); }
+
+      If you want links to appear at the bottom of the page rather
+      than the top, make sure to set $EnableAddLinkToEnd to 1 *before*
+      including the recipe.
 
 */
 
@@ -32,7 +53,7 @@
 $RecipeInfo['AddLink2-tags']['Version'] = '2011/11/13';
 
 $DefaultAddLinkFmt =
-  "* [[\$AddLinkTitle -> \$AddLinkUrl]]\n->\$AddLinkSelection\n->Tags: (:tags \$AddLinkTags, bookmark:)\n-->Posted: \$posttime";
+  "* [[\$AddLinkTitle -> \$AddLinkUrl]]\n->\$AddLinkSelection\n->Tags: (:tags \$AddLinkTags, bookmark:)\n-->Posted: \$AddLinkTime\n";
 
 // VARIABLES
 // Add links to the bottom instead of the top?
@@ -41,6 +62,7 @@ SDV($EnableAddLinkToEnd,0);
 // The default is a newline before and after.
 SDV($AddLinkPrefixText,"\n");
 SDV($AddLinkSuffixText,"\n");
+// Format of the entry
 SDV($AddLinkFmt,$DefaultAddLinkFmt);
 
 // Add the (:addlink [PageName]:) markup and HandleAddLink actions.
@@ -50,21 +72,14 @@ $HandleActions['addlink'] = 'HandleAddLink';
 
 // Function to create the bookmarklet
 function CreateBookmarklet($pagename, $linkpage) {
-	global $WikiTitle;
+  global $WikiTitle;
   if ($linkpage) $pagename = MakePageName($pagename, $linkpage);
-  $bookmarklet="<a href=\"javascript:var tags, u, a, d=document,w=window,e=w.getSelection,k=d.getSelection,x=d.selection,s = (e ? e() : (k) ? k() : (x ? x.createRange().text : 0 )),f = '\$PageUrl?action=addlink',l = d.location,en = encodeURIComponent;if (s == '') s = prompt('Descriptive Text:');tags=prompt('Enter comma-separated tags:');u = f + '?url=' + en(l.href) + '&title=' + en(d.title) + '&selection=' + en(s) + '&tags=' + en(tags+', bookmark');a = function () {if (!w.open(u, 't', 'toolbar=0,resizable=1,scrollbars=1,status=1,width=720,height=570')) l.href = u;};if (/Firefox/.test(navigator.userAgent)) setTimeout(a, 0);else a();void(0)\" title=\"send to \$WikiTitle/\$pagename\">send to ".$WikiTitle."/".$pagename."</a>";
-  //$mozlink = "<a href=\"javascript:selection=document.getSelection();if(!document.getSelection())selection=prompt('Text:');tags=prompt('Enter comma-separated tags:');t=document.title;t=t.replace('|','-');document.location.href='\$PageUrl?action=addlink&url='+encodeURIComponent(document.location.href)+'&selected='+encodeURIComponent(selection)+'&title='+encodeURIComponent(t)+'&tags='+encodeURIComponent(tags+', bookmark')\" title=\"send to \$WikiTitle.\">send to \$WikiTitle</a>";
-  //  $ielink = "<a href=\"javascript:selection=document.selection.createRange().text;if(!selection)selection=prompt('Text:');tags=prompt('Enter comma-separated tags:');t=document.title;t=t.replace('|','-');document.location.href='\$PageUrl?action=addlink&url='+encodeURIComponent(document.location.href)+'&selected='+encodeURIComponent(selection)+'&title='+encodeURIComponent(t)+'&tags='+encodeURIComponent(tags+', bookmark')\" title=\"send to \$WikiTitle\">send to ".$WikiTitle."</a>";
-	//@sms("mozlink=",htmlspecialchars($mozlink),__FILE__,__LINE__);
-	//@sms("ielink=",htmlspecialchars($ielink),__FILE__,__LINE__);
-  @sms("bookmarket=",htmlspecialchars($bookmarklet),__FILE__,__LINE__);
+  $bookmarklet="<a href=\"javascript:var tags, u, a, d=document,w=window,e=w.getSelection,k=d.getSelection,x=d.selection,s = (e ? e() : (k) ? k() : (x ? x.createRange().text : 0 )),f = '\$PageUrl?action=addlink',l = d.location,en = encodeURIComponent;if (s == '') s = prompt('Descriptive Text:');tags=prompt('Enter comma-separated tags:');u = f + '?url=' + en(l.href) + '&title=' + en(d.title) + '&selection=' + en(s) + '&tags=' + en(tags);a = function () {if (!w.open(u, 't', '')) l.href = u;};if (/Firefox/.test(navigator.userAgent)) setTimeout(a, 0);else a();void(0)\" title=\"send to \$WikiTitle/\$pagename\">send to ".$WikiTitle."/".$pagename."</a>";
   return FmtPageName("Bookmarklet: $bookmarklet - drag to bookmark bar", $pagename);
 
 }
 
 // Use the site's default edit page.
-// (I noticed in both addlink and kob-addlink that they set the $action variable, but then neglected to use it
-// in the subsequent two statement - TT Tue May 31 20:42:31 CDT 2011)
 if ($action=='addlink') {
   $action = 'edit';
   $OldEditHandler = $HandleActions[$action];
@@ -75,51 +90,22 @@ if ($action=='addlink') {
 // then passes control to the edit function).
 function HandleAddLink($pagename) {
   global  $OldEditHandler, $EnableAddLinkToEnd, $AddLinkPrefixText, $AddLinkSuffixText, $AddLinkFmt;
-  $posttime = date("Y-n-j G:i");
   Lock(2);
   $page = RetrieveAuthPage($pagename, 'edit');
   if (!$page) Abort("?cannot edit $pagename");
-  //  $text = addslashes($page['text']); // 2011/11/13 tpt -- do not know why this is here -- it causes problems with quotes in the wiki page
   $text = $page['text'];
+  // Use similar method to map values into $AddLinkFmt as $UrlLinkFmt
+  // in pmwiki.php 
 
+  $AddLinkV = array();
+  $AddLinkV['$AddLinkUrl'] = (isset($_REQUEST['url']))?urldecode($_REQUEST['url']):'';
+  $AddLinkV['$AddLinkTitle'] = (isset($_REQUEST['title']))?urldecode($_REQUEST['title']):'';
+  $AddLinkV['$AddLinkSelection'] = (isset($_REQUEST['selection']))?urldecode($_REQUEST['selection']):'';
+  $AddLinkV['$AddLinkTags'] = (isset($_REQUEST['tags']))?urldecode($_REQUEST['tags']):'';
+  $AddLinkV['$AddLinkTime'] = date("Y-n-j G:i");
+  $newtext = str_replace(array_keys($AddLinkV),array_values($AddLinkV),$AddLinkFmt);
 
-  /* //	(this was part of kob-addlink.php for creating a blog entry. I went back to the original form somewhat adding in the space for selected text and tags - TT 2011-05-31) */
-  /* if (@$_REQUEST['url']) { */
-  /*   if (IsEnabled($EnableAddLinkToEnd,0)) */
-  /*     $text .= "\n\n(:blogentry title=\"{$_REQUEST['title']}\" time=\"$posttime\" permalink=\"$pagename\":)\n(:tags {$_REQUEST['tags']}:)\n\n{$_REQUEST['selected']} -> [[{$_REQUEST['url']}|link]]\n\n(:blogentryend:)\n\n"; */
-  /*    else $text = "\n(:blogentry title=\"{$_REQUEST['title']}\" time=\"$posttime\" permalink=\"$pagename\":)\n(:tags {$_REQUEST['tags']}:)\n\n{$_REQUEST['selected']} -> [[{$_REQUEST['url']}|link]]\n\n(:blogentryend:)\n\n" . $text; */
-
-  /* } */
-
-  /* if (@$_REQUEST['url']) { */
-  /*   if (@$_REQUEST['title']) { */
-  /*     $newtext = "[[{$_REQUEST['title']} -> {$_REQUEST['url']}]]"; */
-  /*   } else { */
-  /*     $newtext = $_REQUEST['url']; */
-  /*   } */
-  /* 	if (@$_REQUEST['selected']) { */
-  /* 		$newtext .= "\n{$_REQUEST['selected']}"; */
-  /* 	} */
-  /* 	if (@$_REQUEST['tags']) { */
-  /* 		// tags comes in URI encoded, but we need the spaces and the commas */
-  /* 		$tags=str_replace("%20", ' ', $tags); */
-  /* 		$tags=str_replace("%2C", ',', $tags); */
-  /* 		$newtext .= "\nTags: (:tags {$_REQUEST['tags']} :)\n"; */
-  /* 	} */
-  /*   if (IsEnabled($EnableAddLinkToEnd,0)) */
-  /*     $text .= $AddLinkPrefixText . "* $newtext" . $AddLinkSuffixText; */
-  /*   else $text = $AddLinkPrefixText . "* $newtext" . $AddLinkSuffixText . $text; */
-  /* } */
-
-  $AddLinkUrl = (isset($_REQUEST['url']))?urldecode($_REQUEST['url']):'';
-  $AddLinkTitle = (isset($_REQUEST['title']))?urldecode($_REQUEST['title']):'';
-  $AddLinkSelection = (isset($_REQUEST['selected']))?urldecode($_REQUEST['selected']):'';
-  $AddLinkTags = (isset($_REQUEST['tags']))?urldecode($_REQUEST['tags']):'';
-  $newtext = eval($AddLinkFmt);
-
-  @sms("newtext: ",htmlspecialchars($newtext),__FILE__,__LINE__);
-
-  if (IsEnabled($EnabledAddLinkToEnd,0))
+  if (IsEnabled($EnableAddLinkToEnd,0))
     $text .= $AddLinkPrefixText . $newtext . $AddLinkSuffixText;
   else
     $text = $AddLinkPrefixText . $newtext . $AddLinkSuffixText . $text;
