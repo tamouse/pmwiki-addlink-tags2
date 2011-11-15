@@ -99,7 +99,8 @@ function HandleAddLink($pagename) {
 
   $AddLinkV = array();
   $AddLinkV['$AddLinkUrl'] = (isset($_REQUEST['url']))?urldecode($_REQUEST['url']):'';
-  $AddLinkV['$AddLinkTitle'] = (isset($_REQUEST['title']))?urldecode($_REQUEST['title']):'';
+  $t = (isset($_REQUEST['title']))?urldecode($_REQUEST['title']):'';
+  $AddLinkV['$AddLinkTitle'] = str_replace("|", "-", $t); // this is to prevent the pipe from doing something in the link
   $AddLinkV['$AddLinkSelection'] = (isset($_REQUEST['selection']))?urldecode($_REQUEST['selection']):'';
   $AddLinkV['$AddLinkTags'] = (isset($_REQUEST['tags']))?urldecode($_REQUEST['tags']):'';
   $AddLinkV['$AddLinkTime'] = date("Y-n-j G:i");
