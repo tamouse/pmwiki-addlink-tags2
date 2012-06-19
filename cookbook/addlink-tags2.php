@@ -53,7 +53,7 @@
 $RecipeInfo['AddLink2-tags']['Version'] = '2011/11/13';
 
 $DefaultAddLinkFmt =
-  "* [[\$AddLinkTitle -> \$AddLinkUrl]]\n->\$AddLinkSelection\n->Tags: (:tags \$AddLinkTags, bookmark:)\n-->Posted: \$AddLinkTime\n";
+  "\n* [[\$AddLinkTitle -> \$AddLinkUrl]]\n>>font-style=italic padding-left=5em<<\n(:nolinkwikiwords:)\n\$AddLinkSelection\n(:linkwikiwords:)\n>><<\n->Tags: \$AddLinkTags\n->Posted: \$AddLinkTime\n\n";
 
 // VARIABLES
 // Add links to the bottom instead of the top?
@@ -101,7 +101,7 @@ function HandleAddLink($pagename) {
   $AddLinkV['$AddLinkUrl'] = (isset($_REQUEST['url']))?($_REQUEST['url']):'';
   $t = (isset($_REQUEST['title']))?($_REQUEST['title']):'';
   $AddLinkV['$AddLinkTitle'] = str_replace("|", "-", $t); // this is to prevent the pipe from doing something in the link
-  $AddLinkV['$AddLinkSelection'] = (isset($_REQUEST['selection']))?($_REQUEST['selection']):'';
+  $AddLinkV['$AddLinkSelection'] = (isset($_REQUEST['selection']))?AL_T_cleanSelection($_REQUEST['selection']):'';
   $AddLinkV['$AddLinkTags'] = (isset($_REQUEST['tags']))?($_REQUEST['tags']):'';
   $AddLinkV['$AddLinkTime'] = date("Y-n-j G:i");
   $newtext = str_replace(array_keys($AddLinkV),array_values($AddLinkV),$AddLinkFmt);
@@ -117,3 +117,11 @@ function HandleAddLink($pagename) {
 }
 
 
+// AL_T_cleanSelection cleans up the selected text to be used as the quote from the page.
+function AL_T_cleanSelection($s)
+{
+  if (empty($s)) return $s;
+  $e = mb_detect_encoding($s);
+  if (FALSE===$e) $e='ISO-8859-1'; // default encoding
+  return mb_convert_encoding($s,'HTML-ENTITIES',$e);
+}
