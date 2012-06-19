@@ -3,9 +3,9 @@
     Copyright 2004 Patrick R. Michaud (pmichaud@pobox.com)
     Copyright 2006 Hagan Fox
     Copyright 2006 Andy Kaplan-Myrth
-    Copyright 2011 Tamara Temple (tamara@tamaratemple.com)
+    Copyright 2011-2012 Tamara Temple (tamara@tamaratemple.com)
 
-    This file is addlink.php; you can redistribute it and/or modify
+    This file is addlink-tags2.php; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published
     by the Free Software Foundation; either version 2 of the License, or
     (at your option) any later version.  
@@ -30,30 +30,48 @@
 	$AddLinkTime = set to current time
 
 	No longer forcing the bookmark tag on submission, can be set
-	via the $AddLinkFmt variable (see $DefaultAddLinkFmt)
+	via the $AddLinkFmt variable (see $DefaultAddLinkFmt). A
+	custom format can be set in local/config.php *before*
+	including the script. (2012-06-19)
+
+	The selection string is cleaned up by converting charaters
+	to html entities. The default character set to use if none
+	is detected in the string is set by $AddLinkDefaultCharset,
+	which can be set in the local/config.php *before* including
+	the script. (2012-06-19)
 
 	Also, the bookmarklet itself is completely rewritten to be
 	browser-independent as well as opening a new window rather
-	than changing the current tab/window's location.
+	than changing the current tab/window's location. (2012-06-19)
+
+    INSTALLATION:
 
     Install the script by copying the it to the cookbook/ directory
     and adding the following to the configuration file:
 
-    ## Enable the AddLink Bookmarklet recipe.
-    if ($action == 'edit' || $action == 'browse' || $action == 'addlink') {
-      include_once("$FarmD/cookbook/addlink-tags2.php"); }
+	## Enable the AddLink Bookmarklet recipe.
+	if ($action == 'edit' || $action == 'browse' || $action == 'addlink') {
+	   include_once("$FarmD/cookbook/addlink-tags2.php"); }
 
-      If you want links to appear at the bottom of the page rather
-      than the top, make sure to set $EnableAddLinkToEnd to 1 *before*
-      including the recipe.
+     If you want links to appear at the bottom of the page rather
+     than the top, make sure to set $EnableAddLinkToEnd to 1 *before*
+     including the recipe.
+
+    EXAMPLE:
+
+      $EnableAddLinkToEnd=1;
+      $AddLinkFmt="----\n(:linebreaks:)\nLink: [[\$AddLinkTitle -> \$AddLinkUrl]]\nTags: \$AddLinkTags\nPosted: \$AddLinkTime\n(:nolinebreaks:)\n\n>>quote<<\n(:nolinkwikiwords:)\n\$AddLinkSelection\n(:linkwikiwords:)\n>><<\n";
+      if (in_array($action,array('edit','browse','addlink'))) {
+         include_once("$FarmD/cookbook/addlink-tags2.php");
+      }
 
 */
 
 // VERSION INFO
-$RecipeInfo['AddLink2-tags']['Version'] = '2011/11/13';
+$RecipeInfo['AddLink2-tags']['Version'] = '2012-06-19';
 
 $DefaultAddLinkFmt =
-  "\n* [[\$AddLinkTitle -> \$AddLinkUrl]]\n>>font-style=italic padding-left=5em<<\n(:nolinkwikiwords:)\n\$AddLinkSelection\n(:linkwikiwords:)\n>><<\n->Tags: \$AddLinkTags\n->Posted: \$AddLinkTime\n\n";
+  "* [[\$AddLinkTitle -> \$AddLinkUrl]]\n>>font-style=italic padding-left=5em<<\n(:nolinkwikiwords:)\n\$AddLinkSelection\n(:linkwikiwords:)\n>><<\n->Tags: \$AddLinkTags\n->Posted: \$AddLinkTime\n";
 
 // VARIABLES
 // Add links to the bottom instead of the top?
@@ -64,6 +82,8 @@ SDV($AddLinkPrefixText,"\n");
 SDV($AddLinkSuffixText,"\n");
 // Format of the entry
 SDV($AddLinkFmt,$DefaultAddLinkFmt);
+// Default character set to use if none detected
+SDV($AddLinkDefaultCharset,'ISO-8859-1');
 
 // Add the (:addlink [PageName]:) markup and HandleAddLink actions.
 Markup('addlink', 'inline', '/\\(:addlink\\s*(.*?):\\)/e', 
@@ -101,9 +121,9 @@ function HandleAddLink($pagename) {
   $AddLinkV['$AddLinkUrl'] = (isset($_REQUEST['url']))?($_REQUEST['url']):'';
   $t = (isset($_REQUEST['title']))?($_REQUEST['title']):'';
   $AddLinkV['$AddLinkTitle'] = str_replace("|", "-", $t); // this is to prevent the pipe from doing something in the link
-  $AddLinkV['$AddLinkSelection'] = (isset($_REQUEST['selection']))?AL_T_cleanSelection($_REQUEST['selection']):'';
+  $AddLinkV['$AddLinkSelection'] = (isset($_REQUEST['selection']))?_al_t_fix_encoding($_REQUEST['selection']):'';
   $AddLinkV['$AddLinkTags'] = (isset($_REQUEST['tags']))?($_REQUEST['tags']):'';
-  $AddLinkV['$AddLinkTime'] = date("Y-n-j G:i");
+  $AddLinkV['$AddLinkTime'] = date($TimeFmt);
   $newtext = str_replace(array_keys($AddLinkV),array_values($AddLinkV),$AddLinkFmt);
 
   if (IsEnabled($EnableAddLinkToEnd,0))
@@ -117,11 +137,12 @@ function HandleAddLink($pagename) {
 }
 
 
-// AL_T_cleanSelection cleans up the selected text to be used as the quote from the page.
-function AL_T_cleanSelection($s)
+// cleans up the selected text to be used as the quote from the page.
+function _al_t_fix_encoding($s)
 {
+  global $AddLinkDefaultCharset;
   if (empty($s)) return $s;
   $e = mb_detect_encoding($s);
-  if (FALSE===$e) $e='ISO-8859-1'; // default encoding
+  if (FALSE===$e) $e=$AddLinksDefaultCharset; // default encoding
   return mb_convert_encoding($s,'HTML-ENTITIES',$e);
 }

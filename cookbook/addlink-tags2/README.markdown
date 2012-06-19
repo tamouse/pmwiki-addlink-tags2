@@ -10,15 +10,12 @@ Originally, addlink-tags.php was written, but it lacked any sort of
 customizability, and had a few errors. Also, it necessitated having
 two different bookmarklets, one for IE, and one for everyone else.
 
-Addlink-tag2 goes quite a bit further. Its features include:
+Addlink-tags2 goes quite a bit further. Its features include:
+
 1. The ability to select text to be included in the bookmark.
 2. The ability to add a set of tags to the bookmark.
-3. The ability to configure the format of the bookmark entries on the
-   catching page.
-4. The catching page edit opens in a new tab or window, rather than
-   changing the location of the current tab/window. This is so much
-   better because you can pop back to the sending tab/window if need
-   be without losing your edit.
+3. The ability to configure the format of the bookmark entries on the catching page.
+4. The catching page edit opens in a new tab or window, rather than changing the location of the current tab/window. This is so much better because you can pop back to the sending tab/window if need be without losing your edit.
    
 Installing Addlink-Tags2.Php
 ----------------------------
@@ -26,8 +23,9 @@ Installing Addlink-Tags2.Php
 The installation is largely the same, although there are some new
 configuration options.
 
-Install the script by copying the it to the `cookbook/` directory
-and adding the following to the `local/config.php` configuration file:
+Download addlink-tags2.zip to your pmwiki directory and unzip the file. This will put the recipe into the cookbook subdirectory.
+
+Add the following to the `local/config.php` configuration file:
 
     ## Enable the AddLink Bookmarklet recipe.
     if ($action == 'edit' || $action == 'browse' || $action == 'addlink') {
@@ -36,26 +34,20 @@ and adding the following to the `local/config.php` configuration file:
 
 Configuration options include:
 
-    $EnableAddLinkToEnd - if set to 1, links will be appended to the
-                          page text, otherwise they will be added to
-                          the top. 
+* $EnableAddLinkToEnd - if set to 1, links will be appended to the page text, otherwise they will be added to the top. 
 
-    $AddLinkFmt - a format specification for how you want the captured
-                  link to appear on the capture page.
+* $AddLinkFmt - a format specification for how you want the captured link to appear on the capture page.
 		  
-		  The default for this variable is:
-		  
-                  "* [[\$AddLinkTitle -> \$AddLinkUrl]]\n->\$AddLinkSelection\n->Tags: (:tags \$AddLinkTags, bookmark:)\n-->Posted: \$AddLinkTime\n"
+> * $AddLinkTitle - the title of the linked page
+> * $AddLinkUrl - the url of the linked page
+> * $AddLinkSelection - the selected text
+> * $AddLinkTags - tags given when clipping
+> * $AddLinkTime - time link was sent
+> * $AddLinkPrefixText - text that should appear before the link
+> * $AddLinkSuffixText - text that should appear after the link
 
-                  $AddLinkTitle - the title of the linked page
-		  $AddLinkUrl - the url of the linked page
-		  $AddLinkSelection - the selected text
-		  $AddLinkTags - tags given when clipping
-		  $AddLinkTime - time link was sent
+* $AddLinkDefaultCharset - the selection text is converted into HTML entities. The script attempts to detact the character set of the string, but if it fails, the default characters set given in $AddLinkDefaultCharset is used. The default value is 'ISO-8859-1'.
 
-    $AddLinkPrefixText - text that should appear before the link
-    $AddLinkSuffixText - text that should appear after the link
-    
 Creating a capture page
 -----------------------
 
@@ -76,12 +68,33 @@ tags to give the link.
 
 You will then be shown a new window/tab with the landing page in edit
 mode with the new links either at the top (default) or the bottom (set
-`$EnableAddLinkToEnd` to 1 in `local/config.php`). Your will be
+$EnableAddLinkToEnd` to 1 in `local/config.php`). Your will be
 formatted as either the default or whatever format you've specified.
 
 The landing page must always be editable by anyone attempting to save
 a link. This usually means that page must be wide open to edits from
 everyone. If that concerns you, consider installing a captcha recipe.
+
+Example
+-------
+
+Adding links to the end of the page, and specifying a different format
+for the captured link.
+
+    $EnableAddLinkToEnd=1;
+    $AddLinkFmt="(:linebreaks:)
+    Link: [[\$AddLinkTitle -> \$AddLinkURL]]
+    Tags: \$AddLinkTags
+    Posted: \$AddLinkTime
+    (:nolinebreaks:)
+    
+    >>quote<<
+    (:nolinkwikiwords:)
+    \$AddLinkSelection
+    (:linkwikiwords:)
+    >><<
+    ";
+    if (in_array($action,array('edit','browse','addlink'))) include_once("$FarmD/cookbook/addlink-tags2.php");
 
     
     
