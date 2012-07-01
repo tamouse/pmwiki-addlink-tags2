@@ -121,7 +121,7 @@ function HandleAddLink($pagename) {
   $AddLinkV['$AddLinkUrl'] = (isset($_REQUEST['url']))?($_REQUEST['url']):'';
   $t = (isset($_REQUEST['title']))?($_REQUEST['title']):'';
   $AddLinkV['$AddLinkTitle'] = str_replace("|", "-", $t); // this is to prevent the pipe from doing something in the link
-  $AddLinkV['$AddLinkSelection'] = (isset($_REQUEST['selection']))?_al_t_fix_encoding($_REQUEST['selection']):'';
+o  $AddLinkV['$AddLinkSelection'] = (isset($_REQUEST['selection']))?_al_t_fix_encoding($_REQUEST['selection']):'';
   $AddLinkV['$AddLinkTags'] = (isset($_REQUEST['tags']))?($_REQUEST['tags']):'';
   $AddLinkV['$AddLinkTime'] = date($TimeFmt);
   $newtext = str_replace(array_keys($AddLinkV),array_values($AddLinkV),$AddLinkFmt);
